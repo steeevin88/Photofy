@@ -68,6 +68,7 @@ export type Database = {
       playlists: {
         Row: {
           created_at: string
+          description: string | null
           id: number
           image_path: string | null
           playlist_path: string | null
@@ -76,6 +77,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: number
           image_path?: string | null
           playlist_path?: string | null
@@ -84,6 +86,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: number
           image_path?: string | null
           playlist_path?: string | null

@@ -22,6 +22,7 @@ const UploadModal = () => {
   const { register, handleSubmit, reset } = useForm<FieldValues>({
     defaultValues: {
       title: '',
+      description: '',
       image: null,
     }
   }
@@ -64,11 +65,21 @@ const UploadModal = () => {
         return toast.error('Failed image upload.')
       }
 
+      // TODO - get mood based on image
+
+      // TODO - get songs based on mood keywords
+
+      // TODO - create Spotify playlist containing songs
+
       // successful --> let's actually add the playlist to our databse
       const {
         error: supabaseError
       } = await supabaseClient.from('playlists').insert({
-        
+        user_id: user.id,
+        title: values.title,
+        description: values.description,
+        image_path: imageData.path,
+        // TODO - insert Spotify playlist link after creationg
       })
 
       if (supabaseError) {
@@ -100,7 +111,7 @@ const UploadModal = () => {
             <Input id='image' type='file' disabled={isLoading} {...register('image', { required: true })} accept="image/*" className="hover:cursor-pointer"/>
         </div>
         <Button disabled={isLoading} type='submit'>
-          Create
+          Generate
         </Button>
       </form>
     </Modal>
