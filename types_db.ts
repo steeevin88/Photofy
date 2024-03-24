@@ -72,6 +72,7 @@ export type Database = {
           id: number
           image_path: string | null
           playlist_path: string | null
+          public: boolean | null
           title: string | null
           user_id: string | null
         }
@@ -81,6 +82,7 @@ export type Database = {
           id?: number
           image_path?: string | null
           playlist_path?: string | null
+          public?: boolean | null
           title?: string | null
           user_id?: string | null
         }
@@ -90,6 +92,7 @@ export type Database = {
           id?: number
           image_path?: string | null
           playlist_path?: string | null
+          public?: boolean | null
           title?: string | null
           user_id?: string | null
         }

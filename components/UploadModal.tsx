@@ -23,6 +23,7 @@ const UploadModal = () => {
     defaultValues: {
       title: '',
       description: '',
+      visibility: 'public',
       image: null,
     }
   }
@@ -42,6 +43,9 @@ const UploadModal = () => {
     try {
       setIsLoading(true);
 
+      const isPublic = values.visibility === 'public';
+      console.log(values.visibility)
+      console.log(isPublic)
       const imageFile = values.image?.[0];
       
       if (!imageFile || !user) {
@@ -76,10 +80,11 @@ const UploadModal = () => {
         error: supabaseError
       } = await supabaseClient.from('playlists').insert({
         user_id: user.id,
+        public: isPublic,
         title: values.title,
         description: values.description,
         image_path: imageData.path,
-        // TODO - insert Spotify playlist link after creationg
+        // TODO - insert Spotify playlist link after creation
       })
 
       if (supabaseError) {
@@ -102,13 +107,20 @@ const UploadModal = () => {
   return (
     <Modal title="Generate a new playlist!" description="🎵 Upload a photo and turn memories into music 🎵" isOpen={isOpen} onChange={onChange}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-y-4">
+        <div className="pb-1 flex gap-2">
+          Playlist Visibility:
+          <select id='visibility' {...register('visibility', { required: true })}>
+            <option value='public'>Public</option>
+            <option value='private'>Private</option>
+          </select>
+        </div>
         <Input id='title' disabled={isLoading} {...register('title', { required: true })} placeholder="Playlist Title"/>
         <Input id='description' disabled={isLoading} {...register('description', { required: false })} placeholder="Description (Optional)"/>
         <div>
-            <div className="pb-1">
-              Upload an image!
-            </div>
-            <Input id='image' type='file' disabled={isLoading} {...register('image', { required: true })} accept="image/*" className="hover:cursor-pointer"/>
+          <div className="pb-1">
+            Upload an image!
+          </div>
+          <Input id='image' type='file' disabled={isLoading} {...register('image', { required: true })} accept="image/*" className="hover:cursor-pointer"/>
         </div>
         <Button disabled={isLoading} type='submit'>
           Generate
