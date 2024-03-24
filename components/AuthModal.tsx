@@ -53,7 +53,7 @@ const AuthModal = () => {
 
   return (
     <Modal title="Welcome back!" description="Log into your account" isOpen={isOpen} onChange={onChange}>
-      <Auth theme='dark' providers={["spotify"]} magicLink supabaseClient={supabaseClient} appearance={{
+      <Auth theme='dark' providers={["spotify"]} supabaseClient={supabaseClient} onlyThirdPartyProviders appearance={{
         theme:ThemeSupa, 
         variables: {
           default: {

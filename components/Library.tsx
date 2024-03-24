@@ -2,10 +2,17 @@
 
 import { TbPlaylist } from "react-icons/tb";
 import { AiOutlinePlus } from "react-icons/ai";
+import useAuthModal from "@/hooks/useAuthModal";
+import { useUser } from "@/hooks/useUser";
 
 const Library = () => {
+  const authModal = useAuthModal();
+  const { user } = useUser();
+
   const onClick = () => {
-    // TODO: handle create playlist
+    if (!user) {
+      return authModal.onOpen();
+    }
   }
 
   return (

@@ -10,6 +10,7 @@ export default function Home() {
             Welcome Back
           </h1>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 mt-4">
+            {/* TODO: Fetch playlists from database + display them for users (no more liked songs playlist) */}
             <ListItem image="/images/liked.png" name="Liked Songs" href="liked"/>
           </div>
         </div>
