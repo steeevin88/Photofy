@@ -52,3 +52,44 @@ export interface Subscription {
   trial_end?: string;
   prices?: Price;
 }
+
+export interface SpotifyPlaylist {
+  collaborative: boolean;
+  description: string;
+  external_urls: {
+      spotify: string;
+  };
+  followers: {
+      href: string | null;
+      total: number;
+  };
+  href: string;
+  id: string;
+  images: {
+      height: number | null;
+      url: string;
+      width: number | null;
+  }[];
+  name: string;
+  owner: {
+      href: string;
+      id: string;
+      type: string;
+      uri: string;
+      display_name: string | null;
+      // Add any other owner properties here if needed
+  };
+  primary_color: string | null; // Change the type if you know the actual type
+  public: boolean;
+  snapshot_id: string;
+  tracks: {
+      limit: number;
+      next: string | null;
+      offset: number;
+      previous: string | null;
+      href: string;
+      // Add any other tracks properties here if needed
+  };
+  type: string;
+  uri: string;
+};

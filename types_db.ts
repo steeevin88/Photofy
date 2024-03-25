@@ -71,7 +71,7 @@ export type Database = {
           description: string | null
           id: number
           image_path: string | null
-          playlist_path: string | null
+          playlist_url: string | null
           public: boolean | null
           title: string | null
           user_id: string | null
@@ -81,7 +81,7 @@ export type Database = {
           description?: string | null
           id?: number
           image_path?: string | null
-          playlist_path?: string | null
+          playlist_url?: string | null
           public?: boolean | null
           title?: string | null
           user_id?: string | null
@@ -91,7 +91,7 @@ export type Database = {
           description?: string | null
           id?: number
           image_path?: string | null
-          playlist_path?: string | null
+          playlist_url?: string | null
           public?: boolean | null
           title?: string | null
           user_id?: string | null

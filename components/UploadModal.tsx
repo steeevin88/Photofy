@@ -4,7 +4,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import uniqid from "uniqid";
-import { useSessionContext, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 
 import Modal from "./Modal"
@@ -12,6 +12,7 @@ import useUploadModal from "@/hooks/useUploadModal";
 import Input from "./Input";
 import Button from "./Button";
 import { useUser } from "@/hooks/useUser";
+import { SpotifyPlaylist } from "@/types";
 
 const UploadModal = () => {
   const { onClose, isOpen } = useUploadModal();
@@ -67,10 +68,6 @@ const UploadModal = () => {
         return toast.error('Failed image upload.')
       }
 
-      const { data : imageUrlData } = await supabaseClient.storage
-        .from('images')
-        .getPublicUrl(imageData.path);
-
       // TODO - get mood based on image
 
       // TODO - get songs based on mood keywords
@@ -91,36 +88,42 @@ const UploadModal = () => {
         })
       });
 
+      let playlistData: SpotifyPlaylist | null = null;
       if (response.ok) {
-        // add uploaded image to playlist
-        const playlistData = await response.json();
+        // add uploaded image as playlist cover
+        playlistData = await response.json();
+        console.log(playlistData)
 
-        // convert uploaded image into Base64 encoded JPEG image data
-        // because this is what this endpoint requires
-        const fileReader = new FileReader();
-        fileReader.readAsDataURL(imageFile);
-        fileReader.onload = async () => {
-          const result = fileReader.result;
-          if (typeof result === 'string') {
-            const base64Data = result.split(',')[1];
-            const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/images`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${providerKey}`,
-                'Content-Type': 'image/jpeg'
-              },
-              body: base64Data
-            });
-        
-            if (imageResponse.ok) {
-              console.log('Playlist image updated successfully.');
-            } else {
-              console.error('Failed to update playlist image:', imageResponse.statusText);
-            }
-          }
-        };        
+        // Check if the file size exceeds the maximum allowed size (256 KB)
+        const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
+        if (imageFile.size <= MAX_FILE_SIZE) {
+            const fileReader = new FileReader();
+            fileReader.readAsDataURL(imageFile);
+            fileReader.onload = async () => {
+              const result = fileReader.result;
+              if (typeof result === 'string') {
+                const base64Data = result.split(',')[1];
+                const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/images`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${providerKey}`,
+                    'Content-Type': 'image/jpeg'
+                  },
+                  body: base64Data
+                });
+
+                if (imageResponse.ok) {
+                  toast.success('Playlist image updated successfully.');
+                } else {
+                  toast.error('Failed to update playlist image.');
+                }
+              }
+          };
+        } else {
+          toast.error('Image file size exceeds the maximum allowed size. Please add the playlist image manually.');
+        }
       } else {
-        console.error("Failed to create playlist:", response.statusText);
+        toast.error('Failed to create playlist.');
       }
 
       // successful --> let's actually add the playlist to our databse
@@ -132,7 +135,7 @@ const UploadModal = () => {
         title: values.title,
         description: values.description,
         image_path: imageData.path,
-        // TODO - insert Spotify playlist link after creation
+        playlist_url: playlistData ? playlistData.external_urls["spotify"] : null,
       })
 
       if (supabaseError) {
