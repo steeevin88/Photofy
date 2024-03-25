@@ -4,7 +4,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import uniqid from "uniqid";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSessionContext, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 
 import Modal from "./Modal"
@@ -16,7 +16,7 @@ import { useUser } from "@/hooks/useUser";
 const UploadModal = () => {
   const { onClose, isOpen } = useUploadModal();
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useUser();
+  const { user, spotifyData, providerKey } = useUser();
   const supabaseClient = useSupabaseClient();
   const router = useRouter();
   const { register, handleSubmit, reset } = useForm<FieldValues>({
@@ -44,8 +44,6 @@ const UploadModal = () => {
       setIsLoading(true);
 
       const isPublic = values.visibility === 'public';
-      console.log(values.visibility)
-      console.log(isPublic)
       const imageFile = values.image?.[0];
       
       if (!imageFile || !user) {
@@ -73,7 +71,28 @@ const UploadModal = () => {
 
       // TODO - get songs based on mood keywords
 
+      // TODO - add songs to database
+
       // TODO - create Spotify playlist containing songs
+      const response = await fetch(`https://api.spotify.com/v1/users/${spotifyData?.id}/playlists`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${providerKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: values.title,
+          description: values.description,
+          public: isPublic,
+        })
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log("New playlist created:", responseData);
+      } else {
+          console.error("Failed to create playlist:", response.statusText);
+      }
 
       // successful --> let's actually add the playlist to our databse
       const {

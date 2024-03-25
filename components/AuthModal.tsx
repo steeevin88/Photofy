@@ -22,47 +22,30 @@ const AuthModal = () => {
     }
   }, [session, router, onClose]);
 
-  useEffect(() => {
-    if (session) fetchSpotifyUserProfile(session.provider_token);
-  }, [session])
-
   const onChange = (open: boolean) => {
     if (!open) {
       onClose();
     }
   }
 
-  const fetchSpotifyUserProfile = async (accessToken: any) => {
-    try {
-      const response = await fetch("https://api.spotify.com/v1/me", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-  
-      if (response.ok) {
-        const userProfile = await response.json();
-        console.log("Spotify User Profile:", userProfile);
-      } else {
-        console.error("Failed to fetch Spotify user profile:", response.statusText);
-      }
-    } catch (error: any) {
-      console.error("Error fetching Spotify user profile:", error.message);
-    }
-  };  
-
   return (
     <Modal title="Welcome back!" description="Log into your account" isOpen={isOpen} onChange={onChange}>
-      <Auth theme='dark' providers={["spotify"]} supabaseClient={supabaseClient} onlyThirdPartyProviders appearance={{
-        theme:ThemeSupa, 
-        variables: {
-          default: {
-            colors: {
-              brand: '#404040',
-              brandAccent: '#22c55e'
+      <Auth 
+        theme='dark' 
+        providers={["spotify"]} 
+        providerScopes={{
+          spotify: 'ugc-image-upload playlist-modify-public playlist-modify-private',
+        }}
+        supabaseClient={supabaseClient} onlyThirdPartyProviders appearance={{
+          theme:ThemeSupa, 
+          variables: {
+            default: {
+              colors: {
+                brand: '#404040',
+                brandAccent: '#22c55e'
+              }
             }
           }
-        }
       }}/>
     </Modal>
   )
