@@ -67,6 +67,10 @@ const UploadModal = () => {
         return toast.error('Failed image upload.')
       }
 
+      const { data : imageUrlData } = await supabaseClient.storage
+        .from('images')
+        .getPublicUrl(imageData.path);
+
       // TODO - get mood based on image
 
       // TODO - get songs based on mood keywords
@@ -88,10 +92,35 @@ const UploadModal = () => {
       });
 
       if (response.ok) {
-        const responseData = await response.json();
-        console.log("New playlist created:", responseData);
+        // add uploaded image to playlist
+        const playlistData = await response.json();
+
+        // convert uploaded image into Base64 encoded JPEG image data
+        // because this is what this endpoint requires
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(imageFile);
+        fileReader.onload = async () => {
+          const result = fileReader.result;
+          if (typeof result === 'string') {
+            const base64Data = result.split(',')[1];
+            const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/images`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${providerKey}`,
+                'Content-Type': 'image/jpeg'
+              },
+              body: base64Data
+            });
+        
+            if (imageResponse.ok) {
+              console.log('Playlist image updated successfully.');
+            } else {
+              console.error('Failed to update playlist image:', imageResponse.statusText);
+            }
+          }
+        };        
       } else {
-          console.error("Failed to create playlist:", response.statusText);
+        console.error("Failed to create playlist:", response.statusText);
       }
 
       // successful --> let's actually add the playlist to our databse
