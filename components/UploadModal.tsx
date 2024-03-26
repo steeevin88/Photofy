@@ -20,6 +20,8 @@ const UploadModal = () => {
   const { user, spotifyData, providerKey } = useUser();
   const supabaseClient = useSupabaseClient();
   const router = useRouter();
+  const [topArtists, setTopArtists] = useState([]);
+  const [error, setError] = useState('');
   const { register, handleSubmit, reset } = useForm<FieldValues>({
     defaultValues: {
       title: '',
@@ -70,20 +72,9 @@ const UploadModal = () => {
 
       // TODO - get two genres based on image
 
-      // TODO - get users' recent top 10 artists --> grab 3
-      try {
-        const topArtists = await fetchTopArtists(providerKey);
-
-        // shuffle topArtists to grab 3 at random
-        const selectedArtists = topArtists.map((value: string) => ({ value, sort: Math.random() }))
-          .sort((a: { sort: number; }, b: { sort: number; }) => a.sort - b.sort)
-          .map(({ value } : { value: any}) => value)
-          .slice(0, 3);
-      } catch (error) {
-        console.error('Error getting top artists.');
-      }
-
-      // TODO - use Spotify API to get recommendations based on 5 seeds
+      // TODO - use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
+      const recommendations = await fetchRecommendations(providerKey);
+      console.log(recommendations)
 
       // TODO - add songs to database
 
@@ -195,8 +186,9 @@ const UploadModal = () => {
   )
 }
 
-const fetchTopArtists = async (accessToken: string) => {
+const fetchRecommendations = async (accessToken: string) => {
   try {
+    // Fetch top artists
     const response = await fetch('https://api.spotify.com/v1/me/top/artists', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
@@ -208,9 +200,38 @@ const fetchTopArtists = async (accessToken: string) => {
     }
 
     const data = await response.json();
-    return data.items.map((artist: any) => artist.id);
+    const topArtists = data.items.map((artist: any) => artist.id);
+
+    // Fetch recommendations after fetching top artists
+    const selectedArtists = topArtists
+      .map((value: string) => ({ value, sort: Math.random() }))
+      .sort((a: { sort: number }, b: { sort: number }) => a.sort - b.sort)
+      .map(({ value }: { value: any }) => value)
+      .slice(0, 3);
+
+    const genres = ['pop', 'r-n-b'];
+
+    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!recommendationsResponse.ok) {
+      throw new Error('Failed to fetch recommendations');
+    }
+
+    const recommendationsData = await recommendationsResponse.json();
+    // Handle fetched recommendations here
+    console.log('Recommendations:', recommendationsData);
+
+    return topArtists;
   } catch (error) {
-    toast.error('Error fetching top artists.');
+    console.error('Error fetching recommendations:', error);
+    // Handle error
+    toast.error('Failed to fetch recommendations.');
     return [];
   }
 };
