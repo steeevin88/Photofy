@@ -32,9 +32,9 @@ const AuthModal = () => {
     <Modal title="Welcome back!" description="Log into your account" isOpen={isOpen} onChange={onChange}>
       <Auth 
         theme='dark' 
-        providers={["spotify"]} 
+        providers={["spotify"]}
         providerScopes={{
-          spotify: 'ugc-image-upload playlist-modify-public playlist-modify-private',
+          spotify: 'ugc-image-upload playlist-modify-public playlist-modify-private user-read-private user-read-email user-top-read',
         }}
         supabaseClient={supabaseClient} onlyThirdPartyProviders appearance={{
           theme:ThemeSupa, 

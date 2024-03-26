@@ -68,9 +68,22 @@ const UploadModal = () => {
         return toast.error('Failed image upload.')
       }
 
-      // TODO - get mood based on image
+      // TODO - get two genres based on image
 
-      // TODO - get songs based on mood keywords
+      // TODO - get users' recent top 10 artists --> grab 3
+      try {
+        const topArtists = await fetchTopArtists(providerKey);
+
+        // shuffle topArtists to grab 3 at random
+        const selectedArtists = topArtists.map((value: string) => ({ value, sort: Math.random() }))
+          .sort((a: { sort: number; }, b: { sort: number; }) => a.sort - b.sort)
+          .map(({ value } : { value: any}) => value)
+          .slice(0, 3);
+      } catch (error) {
+        console.error('Error getting top artists.');
+      }
+
+      // TODO - use Spotify API to get recommendations based on 5 seeds
 
       // TODO - add songs to database
 
@@ -92,7 +105,6 @@ const UploadModal = () => {
       if (response.ok) {
         // add uploaded image as playlist cover
         playlistData = await response.json();
-        console.log(playlistData)
 
         // Check if the file size exceeds the maximum allowed size (256 KB)
         const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
@@ -122,6 +134,8 @@ const UploadModal = () => {
         } else {
           toast.error('Image file size exceeds the maximum allowed size. Please add the playlist image manually.');
         }
+
+        // TODO - add recommended songs
       } else {
         toast.error('Failed to create playlist.');
       }
@@ -180,5 +194,25 @@ const UploadModal = () => {
     </Modal>
   )
 }
+
+const fetchTopArtists = async (accessToken: string) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/top/artists', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch top artists');
+    }
+
+    const data = await response.json();
+    return data.items.map((artist: any) => artist.id);
+  } catch (error) {
+    toast.error('Error fetching top artists.');
+    return [];
+  }
+};
 
 export default UploadModal;
