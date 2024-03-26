@@ -94,61 +94,19 @@ const UploadModal = () => {
       // Upon successful playlist creation, add playlist image + songs
       let playlistData: SpotifyPlaylist | null = null;
       if (response.ok) {
-        // add uploaded image as playlist cover
         playlistData = await response.json();
 
-        // Check if the file size exceeds the maximum allowed size (256 KB)
-        const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
-        if (imageFile.size <= MAX_FILE_SIZE) {
-            const fileReader = new FileReader();
-            fileReader.readAsDataURL(imageFile);
-            fileReader.onload = async () => {
-              const result = fileReader.result;
-              if (typeof result === 'string') {
-                const base64Data = result.split(',')[1];
-                const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/images`, {
-                  method: 'PUT',
-                  headers: {
-                    'Authorization': `Bearer ${providerKey}`,
-                    'Content-Type': 'image/jpeg'
-                  },
-                  body: base64Data
-                });
-
-                if (imageResponse.ok) {
-                  toast.success('Playlist image updated successfully.');
-                } else {
-                  toast.error('Failed to update playlist image.');
-                }
-              }
-          };
-        } else {
-          toast.error('Image file size exceeds the maximum allowed size. Please add the playlist image manually.');
-        }
+        // add uploaded image as playlist cover
+        addPlaylistImage(imageFile, imageFile.size, playlistData, providerKey);
 
         // add recommended songs
-        const trackUris = recommendations.tracks.map((track: {uri: string}) => track.uri);
-        const addTracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/tracks`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${providerKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            uris: trackUris
-          })
-        });
+        addRecommendedSongs(recommendations['tracks'], playlistData, providerKey);
 
-        if (addTracksResponse.ok) {
-          toast.success('Recommended songs added to the playlist.');
-        } else {
-          toast.error('Failed to add recommended songs to the playlist.');
-        }
       } else {
         toast.error('Failed to create playlist.');
       }
 
-      // successful --> let's actually add the playlist to our databse
+      // successful --> let's actually add the songs + playlist to our databse
       const {
         error: supabaseError
       } = await supabaseClient.from('playlists').insert({
@@ -203,12 +161,12 @@ const UploadModal = () => {
   )
 }
 
-const fetchRecommendations = async (accessToken: string) => {
+const fetchRecommendations = async (providerKey: string) => {
   try {
     // Fetch top artists
     const response = await fetch('https://api.spotify.com/v1/me/top/artists', {
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${providerKey}`
       }
     });
 
@@ -231,7 +189,7 @@ const fetchRecommendations = async (accessToken: string) => {
     const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${providerKey}`,
         'Content-Type': 'application/json'
       }
     });
@@ -249,5 +207,55 @@ const fetchRecommendations = async (accessToken: string) => {
     return [];
   }
 };
+
+const addPlaylistImage = async (imageFile: Blob, size : number, playlistData: SpotifyPlaylist | null, providerKey: string) => {
+  // Check if the file size exceeds the maximum allowed size (256 KB)
+  const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
+  if (size <= MAX_FILE_SIZE) {
+      const fileReader = new FileReader();
+      fileReader.readAsDataURL(imageFile);
+      fileReader.onload = async () => {
+        const result = fileReader.result;
+        if (typeof result === 'string') {
+          const base64Data = result.split(',')[1];
+          const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/images`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${providerKey}`,
+              'Content-Type': 'image/jpeg'
+            },
+            body: base64Data
+          });
+
+          if (imageResponse.ok) {
+            toast.success('Playlist image updated successfully.');
+          } else {
+            toast.error('Failed to update playlist image.');
+          }
+        }
+    };
+  } else {
+    toast.error('Image file size exceeds the maximum allowed size. Please add the playlist image manually.');
+  }
+}
+
+const addRecommendedSongs = async (tracks: [any], playlistData: SpotifyPlaylist | null, providerKey: string) => {
+  const trackUris = tracks.map((track: {uri: string}) => track.uri);
+  const addTracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/tracks`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${providerKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      uris: trackUris
+    })
+  });
+  if (addTracksResponse.ok) {
+    toast.success('Songs added to the playlist.');
+  } else {
+    toast.error('Failed to add songs to the playlist.');
+  }
+}
 
 export default UploadModal;
