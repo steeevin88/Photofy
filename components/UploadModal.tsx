@@ -20,8 +20,6 @@ const UploadModal = () => {
   const { user, spotifyData, providerKey } = useUser();
   const supabaseClient = useSupabaseClient();
   const router = useRouter();
-  const [topArtists, setTopArtists] = useState([]);
-  const [error, setError] = useState('');
   const { register, handleSubmit, reset } = useForm<FieldValues>({
     defaultValues: {
       title: '',
@@ -46,11 +44,15 @@ const UploadModal = () => {
     try {
       setIsLoading(true);
 
-      const isPublic = values.visibility === 'public';
+      const isPublic = (values.visibility === 'public');
       const imageFile = values.image?.[0];
       
-      if (!imageFile || !user) {
-        toast.error("Missing fields.");
+      // validate form inputs + toast error if needed
+      const validationMessages = [];
+      if (values.title === '') validationMessages.push('- Please add a playlist title.');
+      if (!imageFile) validationMessages.push('- Please upload an image file.');
+      if (!user || validationMessages.length > 0) {
+        toast.error('Missing fields.\n' + validationMessages.join('\n'));
         return;
       }
 
@@ -74,7 +76,6 @@ const UploadModal = () => {
 
       // TODO - use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
       const recommendations = await fetchRecommendations(providerKey);
-      console.log(recommendations)
 
       // TODO - add songs to database
 
@@ -170,16 +171,16 @@ const UploadModal = () => {
             <option value='private'>Private</option>
           </select>
         </div>
-        <Input id='title' disabled={isLoading} {...register('title', { required: true })} placeholder="Playlist Title"/>
-        <Input id='description' disabled={isLoading} {...register('description', { required: false })} placeholder="Description (Optional)"/>
+        <Input id='title' disabled={isLoading} {...register('title')} placeholder="Playlist Title"/>
+        <Input id='description' disabled={isLoading} {...register('description')} placeholder="Description (Optional)"/>
         <div>
           <div className="pb-1">
             Upload an image!
           </div>
-          <Input id='image' type='file' disabled={isLoading} {...register('image', { required: true })} accept="image/*" className="hover:cursor-pointer"/>
+          <Input id='image' type='file' disabled={isLoading} {...register('image')} accept="image/*" className="hover:cursor-pointer"/>
         </div>
-        <Button disabled={isLoading} type='submit'>
-          Generate
+        <Button type='submit'>
+          Generate Photofy Playlist
         </Button>
       </form>
     </Modal>
