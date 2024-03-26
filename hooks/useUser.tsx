@@ -104,7 +104,7 @@ export const useUser = () => {
   return context;
 }
 
-const fetchSpotifyUserProfile = async (accessToken: any) => {
+const fetchSpotifyUserProfile = async (accessToken: string) => {
   try {
     const response = await fetch("https://api.spotify.com/v1/me", {
       headers: {

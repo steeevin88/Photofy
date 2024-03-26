@@ -74,12 +74,10 @@ const UploadModal = () => {
 
       // TODO - get two genres based on image
 
-      // TODO - use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
+      // Use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
       const recommendations = await fetchRecommendations(providerKey);
 
-      // TODO - add songs to database
-
-      // TODO - create Spotify playlist containing songs
+      // Create Spotify playlist containing songs
       const response = await fetch(`https://api.spotify.com/v1/users/${spotifyData?.id}/playlists`, {
         method: 'POST',
         headers: {
@@ -93,6 +91,7 @@ const UploadModal = () => {
         })
       });
 
+      // Upon successful playlist creation, add playlist image + songs
       let playlistData: SpotifyPlaylist | null = null;
       if (response.ok) {
         // add uploaded image as playlist cover
@@ -127,7 +126,24 @@ const UploadModal = () => {
           toast.error('Image file size exceeds the maximum allowed size. Please add the playlist image manually.');
         }
 
-        // TODO - add recommended songs
+        // add recommended songs
+        const trackUris = recommendations.tracks.map((track: {uri: string}) => track.uri);
+        const addTracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/tracks`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${providerKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            uris: trackUris
+          })
+        });
+
+        if (addTracksResponse.ok) {
+          toast.success('Recommended songs added to the playlist.');
+        } else {
+          toast.error('Failed to add recommended songs to the playlist.');
+        }
       } else {
         toast.error('Failed to create playlist.');
       }
@@ -201,7 +217,7 @@ const fetchRecommendations = async (accessToken: string) => {
     }
 
     const data = await response.json();
-    const topArtists = data.items.map((artist: any) => artist.id);
+    const topArtists = data.items.map((artist: {id : string}) => artist.id);
 
     // Fetch recommendations after fetching top artists
     const selectedArtists = topArtists
@@ -225,10 +241,7 @@ const fetchRecommendations = async (accessToken: string) => {
     }
 
     const recommendationsData = await recommendationsResponse.json();
-    // Handle fetched recommendations here
-    console.log('Recommendations:', recommendationsData);
-
-    return topArtists;
+    return recommendationsData;
   } catch (error) {
     console.error('Error fetching recommendations:', error);
     // Handle error
