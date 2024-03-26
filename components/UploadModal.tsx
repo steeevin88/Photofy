@@ -12,7 +12,7 @@ import useUploadModal from "@/hooks/useUploadModal";
 import Input from "./Input";
 import Button from "./Button";
 import { useUser } from "@/hooks/useUser";
-import { SpotifyPlaylist } from "@/types";
+import { SpotifyPlaylist, SpotifyTrack } from "@/types";
 
 const UploadModal = () => {
   const { onClose, isOpen } = useUploadModal();
@@ -239,7 +239,7 @@ const addPlaylistImage = async (imageFile: Blob, size : number, playlistData: Sp
   }
 }
 
-const addRecommendedSongs = async (tracks: [any], playlistData: SpotifyPlaylist | null, providerKey: string) => {
+const addRecommendedSongs = async (tracks: [SpotifyTrack], playlistData: SpotifyPlaylist | null, providerKey: string) => {
   const trackUris = tracks.map((track: {uri: string}) => track.uri);
   const addTracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/tracks`, {
     method: 'POST',

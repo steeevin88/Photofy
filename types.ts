@@ -77,9 +77,8 @@ export interface SpotifyPlaylist {
       type: string;
       uri: string;
       display_name: string | null;
-      // Add any other owner properties here if needed
   };
-  primary_color: string | null; // Change the type if you know the actual type
+  primary_color: string | null;
   public: boolean;
   snapshot_id: string;
   tracks: {
@@ -88,8 +87,28 @@ export interface SpotifyPlaylist {
       offset: number;
       previous: string | null;
       href: string;
-      // Add any other tracks properties here if needed
   };
   type: string;
   uri: string;
 };
+
+export interface SpotifyTrack {
+  album_type: string;
+  artists: {
+    name: string;
+  }[];
+  available_markets: string[];
+  external_urls: {
+    spotify: string;
+  };
+  href: string;
+  id: string;
+  is_local: boolean;
+  name: string;
+  popularity: number;
+  preview_url: string | null;
+  track_number: number;
+  type: string;
+  uri: string;
+}
+
