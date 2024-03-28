@@ -1,5 +1,15 @@
 import Stripe from "stripe";
 
+export interface Playlist {
+  id: string;
+  title: string;
+  playlist_url: string;
+  image_path: string;
+  user_id: string;
+  description: string;
+  public: string;
+}
+
 export interface UserDetails {
   id: string;
   first_name: string;
