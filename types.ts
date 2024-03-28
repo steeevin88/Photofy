@@ -2,6 +2,7 @@ import Stripe from "stripe";
 
 export interface Playlist {
   id: string;
+  created_at: string;
   title: string;
   playlist_url: string;
   image_path: string;
