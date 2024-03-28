@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import useLoadImage from "@/hooks/useLoadImage";
 import { Playlist } from "@/types";
+import PlayButton from "@/components/PlayButton";
 
 interface PlaylistItemProps {
   data: Playlist;
@@ -17,13 +18,16 @@ const PlaylistItem: React.FC<PlaylistItemProps> = ({data, onClick}) => {
       <div className="relative aspect-square w-full h-full rounded-md overflow-hidden">
         <Image className="object-cover" src={imagePath || '/images/liked.png'} fill alt="image"/>
       </div>
-      <div className="flex flex-col items-start w-full p-5 pb-3 gap-y-1">
+      <div className="flex flex-col items-start w-full pt-4 gap-y-1">
         <p className="font-semibold truncate w-full">
           {data.title}
         </p>
-        <p className="text-neutral-400 text-sm w-full">
-          Created {new Date(data.created_at).toLocaleString([], { month: 'numeric', day: 'numeric' })} at {new Date(data.created_at).toLocaleTimeString([], { hour: 'numeric', minute: 'numeric' })}
+        <p className="text-neutral-400 text-sm pb-2 w-full">
+          Created {new Date(data.created_at).toLocaleString([], { month: 'numeric', day: 'numeric' })}, {new Date(data.created_at).toLocaleTimeString([], { hour: 'numeric', minute: 'numeric' })}
         </p>
+      </div>
+      <div className="absolute bottom-24 right-5">
+        <PlayButton />
       </div>
     </div>
   );
