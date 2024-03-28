@@ -99,16 +99,16 @@ const UploadModal = () => {
         // add uploaded image as playlist cover
         addPlaylistImage(imageFile, imageFile.size, playlistData, providerKey);
 
-        // add recommended songs
+        // add recommended songs to playlist
         addRecommendedSongs(recommendations['tracks'], playlistData, providerKey);
 
       } else {
         toast.error('Failed to create playlist.');
       }
 
-      // successful --> let's actually add the songs + playlist to our databse
+      // add playlist to Supabase
       const {
-        error: supabaseError
+        error: supabasePlaylistError
       } = await supabaseClient.from('playlists').insert({
         user_id: user.id,
         public: isPublic,
@@ -118,9 +118,31 @@ const UploadModal = () => {
         playlist_url: playlistData ? playlistData.external_urls["spotify"] : null,
       })
 
-      if (supabaseError) {
+      // add songs to Supabase
+      const songInsertions = recommendations['tracks'].map(async (track: SpotifyTrack) => {
+        const { error: supabaseError } = await supabaseClient.from('songs').upsert(
+          {
+            id: track.id,
+            title: track.name,
+            artist: track.artists[0].name,
+            preview_url: track.preview_url,
+            image_url: track.album.images[2].url
+          }, 
+          { ignoreDuplicates: 'true' } as any
+        );
+      
+        return supabaseError;
+      });
+      
+      const errors = await Promise.all(songInsertions);
+      const supabaseSongsError = errors.find(error => error); // find first non-null error
+
+      if (supabaseSongsError || supabasePlaylistError) {
+        const supabaseErrorMessages = [];
+        if (supabaseSongsError) supabaseErrorMessages.push('Failed to add songs to database.');
+        if (supabasePlaylistError) supabaseErrorMessages.push('Failed to add playlist to database.');
         setIsLoading(false);
-        return toast.error(supabaseError.message);
+        return toast.error(supabaseErrorMessages.join('\n'));
       }
 
       router.refresh();

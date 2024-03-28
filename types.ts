@@ -94,6 +94,11 @@ export interface SpotifyPlaylist {
 
 export interface SpotifyTrack {
   album_type: string;
+  album: {
+    images:{
+      url: string;
+    }[]
+  }
   artists: {
     name: string;
   }[];

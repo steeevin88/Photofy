@@ -32,7 +32,7 @@ export type Database = {
           },
         ]
       }
-      in_playlist: {
+      has_playlist: {
         Row: {
           created_at: string
           playlist_id: number
@@ -50,17 +50,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "public_has_playlist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "public_liked_songs_song_id_fkey"
             columns: ["playlist_id"]
             isOneToOne: false
             referencedRelation: "playlists"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "public_liked_songs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -180,6 +180,33 @@ export type Database = {
           image?: string | null
           metadata?: Json | null
           name?: string | null
+        }
+        Relationships: []
+      }
+      songs: {
+        Row: {
+          artist: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          preview_url: string | null
+          title: string | null
+        }
+        Insert: {
+          artist?: string | null
+          created_at?: string
+          id: string
+          image_url?: string | null
+          preview_url?: string | null
+          title?: string | null
+        }
+        Update: {
+          artist?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          preview_url?: string | null
+          title?: string | null
         }
         Relationships: []
       }
