@@ -65,6 +65,36 @@ export type Database = {
           },
         ]
       }
+      in_playlist: {
+        Row: {
+          playlist_id: number
+          song_id: string
+        }
+        Insert: {
+          playlist_id: number
+          song_id: string
+        }
+        Update: {
+          playlist_id?: number
+          song_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_in_playlist_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_in_playlist_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       playlists: {
         Row: {
           created_at: string

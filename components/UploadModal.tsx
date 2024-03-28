@@ -40,14 +40,13 @@ const UploadModal = () => {
   }
 
   const onSubmit: SubmitHandler<FieldValues> = async (values) => {
-    // upload to supabase
     try {
       setIsLoading(true);
-
+  
       const isPublic = (values.visibility === 'public');
       const imageFile = values.image?.[0];
-      
-      // validate form inputs + toast error if needed
+  
+      // Validate form inputs
       const validationMessages = [];
       if (values.title === '') validationMessages.push('- Please add a playlist title.');
       if (!imageFile) validationMessages.push('- Please upload an image file.');
@@ -55,29 +54,22 @@ const UploadModal = () => {
         toast.error('Missing fields.\n' + validationMessages.join('\n'));
         return;
       }
-
-      const uniqueId = uniqid();
-
+  
       // Upload Image
-      const {
-        data: imageData,
-        error: imageError,
-      } = await supabaseClient.storage.from('images').upload(`images-${values.title}-${uniqueId}`, imageFile, {
+      const uniqueId = uniqid();
+      const { data: imageData, error: imageError } = await supabaseClient.storage.from('images').upload(`images-${values.title}-${uniqueId}`, imageFile, {
         cacheControl: '3600',
         upsert: false
       });
-
+  
       if (imageError) {
-        setIsLoading(false);
-        return toast.error('Failed image upload.')
+        throw new Error('Failed image upload.');
       }
-
-      // TODO - get two genres based on image
-
+  
       // Use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
       const recommendations = await fetchRecommendations(providerKey);
-
-      // Create Spotify playlist containing songs
+  
+      // Create Spotify playlist
       const response = await fetch(`https://api.spotify.com/v1/users/${spotifyData?.id}/playlists`, {
         method: 'POST',
         headers: {
@@ -90,75 +82,66 @@ const UploadModal = () => {
           public: isPublic,
         })
       });
-
-      // Upon successful playlist creation, add playlist image + songs
-      let playlistData: SpotifyPlaylist | null = null;
-      if (response.ok) {
-        playlistData = await response.json();
-
-        // add uploaded image as playlist cover
-        addPlaylistImage(imageFile, imageFile.size, playlistData, providerKey);
-
-        // add recommended songs to playlist
-        addRecommendedSongs(recommendations['tracks'], playlistData, providerKey);
-
-      } else {
-        toast.error('Failed to create playlist.');
+  
+      if (!response.ok) {
+        throw new Error('Failed to create playlist.');
       }
-
-      // add playlist to Supabase
-      const {
-        error: supabasePlaylistError
-      } = await supabaseClient.from('playlists').insert({
+  
+      const playlistData = await response.json();
+  
+      // Add uploaded image as playlist cover
+      addPlaylistImage(imageFile, imageFile.size, playlistData, providerKey);
+  
+      // Add recommended songs to playlist
+      await addRecommendedSongs(recommendations['tracks'], playlistData, providerKey);
+  
+      // Add playlist to Supabase
+      const { data: supabasePlaylistData, error: supabasePlaylistError } = await supabaseClient.from('playlists').upsert({
         user_id: user.id,
         public: isPublic,
         title: values.title,
         description: values.description,
         image_path: imageData.path,
-        playlist_url: playlistData ? playlistData.external_urls["spotify"] : null,
-      })
-
-      // add songs to Supabase
+        playlist_url: playlistData.external_urls["spotify"],
+      }).select();
+  
+      if (supabasePlaylistError) {
+        throw supabasePlaylistError;
+      }
+  
+      // Add songs to Supabase and link them to the playlist
       const songInsertions = recommendations['tracks'].map(async (track: SpotifyTrack) => {
-        // here, we upsert so we can avoid/ ignore the insertion of duplicates
-        const { error: supabaseError } = await supabaseClient.from('songs').upsert(
-          {
-            id: track.id,
-            title: track.name,
-            artist: track.artists[0].name,
-            preview_url: track.preview_url,
-            image_url: track.album.images[2].url
-          }, 
-          { 
-            ignoreDuplicates: true
-          }
-        );
-      
-        return supabaseError;
+        await supabaseClient.from('songs').upsert({
+          id: track.id,
+          title: track.name,
+          artist: track.artists[0].name,
+          preview_url: track.preview_url,
+          image_url: track.album.images[2].url
+        }, { ignoreDuplicates: true });
+  
+        await supabaseClient.from('in_playlist').insert({
+          song_id: track.id,
+          playlist_id: supabasePlaylistData[0].id, // https://supabase.com/docs/reference/javascript/db-modifiers-select
+        });
       });
-      
-      const errors = await Promise.all(songInsertions);
-      const supabaseSongsError = errors.find(error => error); // find first non-null error
-
-      if (supabaseSongsError || supabasePlaylistError) {
-        const supabaseErrorMessages = [];
-        if (supabaseSongsError) supabaseErrorMessages.push('Failed to add songs to database.');
-        if (supabasePlaylistError) supabaseErrorMessages.push('Failed to add playlist to database.');
-        setIsLoading(false);
-        return toast.error(supabaseErrorMessages.join('\n'));
+  
+      await Promise.all(songInsertions);
+  
+      // Handle errors
+      if (supabasePlaylistError) {
+        throw new Error('Failed to add playlist to database.');
       }
 
       router.refresh();
-      setIsLoading(false);
-      toast.success("Playlist created!")
+      toast.success('Playlist created!');
       reset();
       onClose();
-    } catch (error) {
-      toast.error("Something went wrong!");
+    } catch (error : any) {
+      toast.error(error.message || 'Something went wrong!');
     } finally {
       setIsLoading(false);
     }
-  }
+  }  
 
   return (
     <Modal title="Generate a new playlist!" description="🎵 Upload a photo and turn memories into music 🎵" isOpen={isOpen} onChange={onChange}>
