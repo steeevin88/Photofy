@@ -120,6 +120,7 @@ const UploadModal = () => {
 
       // add songs to Supabase
       const songInsertions = recommendations['tracks'].map(async (track: SpotifyTrack) => {
+        // here, we upsert so we can avoid/ ignore the insertion of duplicates
         const { error: supabaseError } = await supabaseClient.from('songs').upsert(
           {
             id: track.id,
@@ -128,7 +129,9 @@ const UploadModal = () => {
             preview_url: track.preview_url,
             image_url: track.album.images[2].url
           }, 
-          { ignoreDuplicates: 'true' } as any
+          { 
+            ignoreDuplicates: true
+          }
         );
       
         return supabaseError;
