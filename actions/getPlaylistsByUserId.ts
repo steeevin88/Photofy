@@ -10,8 +10,8 @@ const getPlaylistsByUserId = async (): Promise<Playlist[]> => {
 
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-  if (sessionError) {
-    console.log(sessionError.message); 
+  // if failed session OR user isn't logged in --> no libraries to display...
+  if (sessionError || !sessionData.session?.user.id) {
     return [];
   };
 
@@ -21,7 +21,7 @@ const getPlaylistsByUserId = async (): Promise<Playlist[]> => {
     .eq('user_id', sessionData.session?.user.id)
     .order('created_at', { ascending: false })
 
-  if (error) console.log(error.message);
+  if (error) console.log(error.message); // supabase error
 
   return (data as any) || [];
 }
