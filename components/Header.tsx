@@ -64,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({children, className}) => {
               <Button onClick={handleLogout} className="bg-white px-6 py-2">
                 Logout
               </Button>
-              <Button onClick={() => router.push('/account')} className="bg-white">
+              <Button className="bg-white">
                 <FaUserAlt/>
               </Button>
             </div>
