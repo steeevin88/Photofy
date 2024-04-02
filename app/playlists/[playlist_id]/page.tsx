@@ -16,7 +16,7 @@ export default async function Page({ params }: { params: { playlist_id: string }
 
     if (songs) {
       // if songs is not null, it means we successfully fetched the songs
-      return (<PlaylistPage songs={songs}/>);
+      return (<PlaylistPage playlistInfo={ownsPlaylist} songs={songs}/>);
     } else {
       // if songs is null, it means there was an error fetching the songs
       return (
