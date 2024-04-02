@@ -194,7 +194,7 @@ const fetchRecommendations = async (providerKey: string) => {
 
     const genres = ['pop', 'r-n-b'];
 
-    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}`, {
+    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}&limit=24`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${providerKey}`,

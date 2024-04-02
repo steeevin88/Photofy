@@ -24,6 +24,7 @@ const PlaylistPage: React.FC<PlaylistPageProps> = ({playlistInfo, songs}) => {
           <div className="flex flex-col gap-y-2 mt-4 md:mt-0">
             <p className="hidden md:block font-semibold text-sm">Playlist</p>
             <h1 className="text-white text-4xl sm:text-5xl lg:text-7xl font-bold">{playlistInfo.title}</h1>
+            <p className="hidden md:block text-sm">{playlistInfo.description}</p>
           </div>
         </div>
       </div>
@@ -32,7 +33,7 @@ const PlaylistPage: React.FC<PlaylistPageProps> = ({playlistInfo, songs}) => {
         {songs.map((song: any) => (
           <div key={song.id} className="flex items-center gap-x-3 cursor-pointer bg-neutral-800/50 hover:bg-neutral-800/100 w-[99%] p-2 rounded-md">
             <div className="relative rounded min-h-[48px] min-w-[48px] overflow-hidden">
-              <Image fill src={song.image_url || "/images/liked.png"} alt="SongCover" className="object-cover" sizes="(max-width: 600px) 100vw, 800px" />
+              <Image fill src={song.image_url || "/images/liked.png"} alt="SongCover" className="object-cover" sizes="(max-width: 600px) 100vw, 800px"/>
             </div>
             <div className="flex flex-col gap-y-1 overflow-hidden">
               <p className="text-white truncate">{song.title}</p>
