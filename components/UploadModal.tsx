@@ -193,7 +193,7 @@ const fetchRecommendations = async (providerKey: string) => {
 
     const genres = ['pop', 'r-n-b'];
 
-    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}`, {
+    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}&limit=24`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${providerKey}`,
@@ -242,42 +242,32 @@ const addPlaylistImage = async (imageFile: Blob, playlistData: SpotifyPlaylist |
 }
 
 const reformat = async (imageFile: any): Promise<Blob> => {
-  // // Check if the file size exceeds the maximum allowed size (256 KB)
-  // const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
-
   try {
     let newImg = imageFile
     const fileName = imageFile.name.toLowerCase();
     
+    // Check if file is heic/heif
     if ((fileName.endsWith(".heic") || fileName.endsWith(".heif")) && typeof window !== 'undefined') {
       const heic2any = require('heic2any'); // https://stackoverflow.com/questions/74842883/how-to-use-heic2any-in-next-js-client-side
       newImg = await heic2any({ blob: imageFile });
-      console.log("image converted");
     }
 
-    if (newImg instanceof Blob) {
+    // Check if the file size exceeds the maximum allowed size (256 KB)
+    const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
+    if (newImg.size > MAX_FILE_SIZE && newImg instanceof Blob) {
       const compressedBlob = await new Promise<Blob>((resolve, reject) => {
         new Compressor(newImg, {
-          quality: 0.8, 
-          maxWidth: 500, 
-          maxHeight: 500,
+          convertSize: MAX_FILE_SIZE,
           mimeType: "image/jpeg", // Specify the output image format
-          success (compressedResult) {  
-            resolve(compressedResult);
-          },
-          error(err) {
-            reject(err);
-            console.error('Error compressing image:', err);
-          },
+          success (compressedResult) { resolve(compressedResult) },
+          error(err) { reject(err) },
         });
       });
-      
-      console.log("image compressed");
       newImg = compressedBlob;
     }
     return newImg;
   } catch (error) {
-    console.error('Error reformatting', error);
+    console.error('Error reformatting image', error);
     throw error;
   }
 }
