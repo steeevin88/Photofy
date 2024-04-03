@@ -6,7 +6,6 @@ import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import uniqid from "uniqid";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
-import heic2any from 'heic2any';
 import Compressor from 'compressorjs';
 
 import Modal from "./Modal"
@@ -250,7 +249,8 @@ const reformat = async (imageFile: any): Promise<Blob> => {
     let newImg = imageFile
     const fileName = imageFile.name.toLowerCase();
     
-    if (fileName.endsWith(".heic") || fileName.endsWith(".heif")) {
+    if ((fileName.endsWith(".heic") || fileName.endsWith(".heif")) && typeof window !== 'undefined') {
+      const heic2any = require('heic2any'); // https://stackoverflow.com/questions/74842883/how-to-use-heic2any-in-next-js-client-side
       newImg = await heic2any({ blob: imageFile });
       console.log("image converted");
     }
