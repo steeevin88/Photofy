@@ -6,6 +6,7 @@ import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import uniqid from "uniqid";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
+import Compressor from 'compressorjs';
 
 import Modal from "./Modal"
 import useUploadModal from "@/hooks/useUploadModal";
@@ -55,17 +56,6 @@ const UploadModal = () => {
         return;
       }
   
-      // Upload Image
-      const uniqueId = uniqid();
-      const { data: imageData, error: imageError } = await supabaseClient.storage.from('images').upload(`images-${values.title}-${uniqueId}`, imageFile, {
-        cacheControl: '3600',
-        upsert: false
-      });
-  
-      if (imageError) {
-        throw new Error('Failed image upload.');
-      }
-  
       // Use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
       const recommendations = await fetchRecommendations(providerKey);
   
@@ -88,9 +78,18 @@ const UploadModal = () => {
       }
   
       const playlistData = await response.json();
-  
+
+      // reformat image inputs
+      const formattedImageFile = await reformat(imageFile);
+
       // Add uploaded image as playlist cover
-      addPlaylistImage(imageFile, imageFile.size, playlistData, providerKey);
+      addPlaylistImage(formattedImageFile, playlistData, providerKey);
+
+      const uniqueId = uniqid();
+      const { data: imageData, error: imageError } = await supabaseClient.storage.from('images').upload(`images-${values.title}-${uniqueId}`, formattedImageFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
   
       // Add recommended songs to playlist
       await addRecommendedSongs(recommendations['tracks'], playlistData, providerKey);
@@ -101,7 +100,7 @@ const UploadModal = () => {
         public: isPublic,
         title: values.title,
         description: values.description,
-        image_path: imageData.path,
+        image_path: imageData?.path,
         playlist_url: playlistData.external_urls["spotify"],
       }).select();
   
@@ -159,7 +158,7 @@ const UploadModal = () => {
           <div className="pb-1">
             Upload an image!
           </div>
-          <Input id='image' type='file' disabled={isLoading} {...register('image')} accept="image/*" className="hover:cursor-pointer"/>
+          <Input id='image' type='file' disabled={isLoading} {...register('image')} accept="image/heic, image/heif, image/jpeg, image/jpg, image/png" className="hover:cursor-pointer"/>
         </div>
         <Button type='submit'>
           Generate Photofy Playlist
@@ -216,34 +215,60 @@ const fetchRecommendations = async (providerKey: string) => {
   }
 };
 
-const addPlaylistImage = async (imageFile: Blob, size : number, playlistData: SpotifyPlaylist | null, providerKey: string) => {
-  // Check if the file size exceeds the maximum allowed size (256 KB)
-  const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
-  if (size <= MAX_FILE_SIZE) {
-      const fileReader = new FileReader();
-      fileReader.readAsDataURL(imageFile);
-      fileReader.onload = async () => {
-        const result = fileReader.result;
-        if (typeof result === 'string') {
-          const base64Data = result.split(',')[1];
-          const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/images`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${providerKey}`,
-              'Content-Type': 'image/jpeg'
-            },
-            body: base64Data
-          });
+const addPlaylistImage = async (imageFile: Blob, playlistData: SpotifyPlaylist | null, providerKey: string) => {
+  // if here, image will be of valid size
+  const fileReader = new FileReader();
+  fileReader.readAsDataURL(imageFile);
+  fileReader.onload = async () => {
+    const result = fileReader.result;
+    if (typeof result === 'string') {
+      const base64Data = result.split(',')[1];
+      const imageResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData?.id}/images`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${providerKey}`,
+          'Content-Type': 'image/jpeg'
+        },
+        body: base64Data
+      });
 
-          if (imageResponse.ok) {
-            toast.success('Playlist image updated successfully.');
-          } else {
-            toast.error('Failed to update playlist image.');
-          }
-        }
-    };
-  } else {
-    toast.error('Image file size exceeds the maximum allowed size. Please add the playlist image manually.');
+      if (imageResponse.ok) {
+        toast.success('Playlist image updated successfully.');
+      } else {
+        toast.error('Failed to update playlist image.');
+      }
+    }
+  };
+}
+
+const reformat = async (imageFile: any): Promise<Blob> => {
+  try {
+    let newImg = imageFile
+    const fileName = imageFile.name.toLowerCase();
+    
+    // Check if file is heic/heif
+    if ((fileName.endsWith(".heic") || fileName.endsWith(".heif")) && typeof window !== 'undefined') {
+      const heic2any = require('heic2any'); // https://stackoverflow.com/questions/74842883/how-to-use-heic2any-in-next-js-client-side
+      newImg = await heic2any({ blob: imageFile });
+    }
+
+    // Check if the file size exceeds the maximum allowed size (256 KB)
+    const MAX_FILE_SIZE = 256 * 1024; // 256 KB in bytes
+    if (newImg.size > MAX_FILE_SIZE && newImg instanceof Blob) {
+      const compressedBlob = await new Promise<Blob>((resolve, reject) => {
+        new Compressor(newImg, {
+          convertSize: MAX_FILE_SIZE,
+          mimeType: "image/jpeg", // Specify the output image format
+          success (compressedResult) { resolve(compressedResult) },
+          error(err) { reject(err) },
+        });
+      });
+      newImg = compressedBlob;
+    }
+    return newImg;
+  } catch (error) {
+    console.error('Error reformatting image', error);
+    throw error;
   }
 }
 
