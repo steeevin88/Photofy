@@ -195,8 +195,10 @@ const fetchRecommendations = async (providerKey: string, imageFile: Blob) => {
 
     const artistNames: string = topArtists.map((artist: {id: string, name: string}) => artist.name).join(', ');
 
+    const domain = window?.location?.origin || '';
     const anthropic = new Anthropic({
       apiKey: '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',
+      baseURL: domain + '/anthropic/',
     });
 
     const seeds = await anthropic.messages.create({
