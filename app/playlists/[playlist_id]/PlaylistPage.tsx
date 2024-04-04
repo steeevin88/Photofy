@@ -21,12 +21,12 @@ const PlaylistPage: React.FC<PlaylistPageProps> = ({playlistInfo, songs}) => {
       {/** Playlist Details */}
       <div className="mt-20 flex lg:flex-row justify-center lg:justify-between mx-10">
         <div className="flex flex-col md:flex-row items-center gap-x-5">
-          <div className="relative h-32 w-32 lg:h-44 lg:w-44 rounded overflow-hidden">
-            <Image className="object-cover shadow-xl bg-white" fill src={imageUrl || "/images/liked.png"} alt="Playlist Image" />
+          <div className="relative h-32 w-32 lg:h-44 lg:w-44 rounded overflow-hidden min-w-32 lg:min-w-44">
+            <Image className="object-cover shadow-xl bg-white" fill src={imageUrl || "/images/liked.png"} alt="Playlist Image" sizes="(max-width: 600px) 100vw, 800px"/>
           </div>
           <div className="flex flex-col gap-y-2 mt-4 md:mt-0">
             <p className="hidden md:block font-semibold text-sm">Playlist</p>
-            <h1 className="text-white text-4xl sm:text-5xl lg:text-7xl font-bold">{playlistInfo.title}</h1>
+            <h1 className="text-white text-4xl sm:text-5xl lg:text-4xl xl:text-7xl font-bold">{playlistInfo.title}</h1>
             <p className="hidden lg:block text-sm break-words w-[25vw]">{playlistInfo.description}</p>
           </div>
         </div>

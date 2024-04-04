@@ -215,18 +215,22 @@ const fetchRecommendations = async (providerKey: string, imageFile: Blob) => {
         },
         {
             "type": "text",
-            "text": `A Spotify user loves the following artists: ${artistNames}. Using the provided image, pick 3 artists that make songs that match the vibe of the image. Then, pick 2 genres based on the image and the artists.`
+            "text": `A Spotify user loves the following artists: ${artistNames}. Using the provided image, pick 3 artists that make songs that match the vibe of the image. Then, pick 2 genres based on the image and the artists. DO NOT add additonal words. Your response should be like this: artist_name, artist_name, artist_name, genre, genre`
         }
       ]}],
       model: 'claude-3-sonnet-20240229',
     });
 
-    console.log(seeds.content);
+    const seededArtistsIds = seeds.content[0].text.split(',').map(element => element.trim()).map((name: string) => {
+      const matchingArtist = topArtists.find((artist: {id: string, name: string}) => artist.name === name);
+      return matchingArtist ? matchingArtist.id : null;
+    }).filter((id: string) => id !== null);
+    const seededGenres = seeds.content[0].text.split(',').slice(-2).map(genre => genre.trim()).join(',');
 
-    const genres = ['pop', 'r-n-b'];
+    console.log(seeds.content[0].text.split(','))
 
     // generate recommendations based on artists + genres retrieved from Claude
-    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}&limit=24`, {
+    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${seededArtistsIds.join(',')}&seed_genres=${seededGenres}&limit=24`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${providerKey}`,
