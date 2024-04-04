@@ -7,6 +7,7 @@ import uniqid from "uniqid";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import Compressor from 'compressorjs';
+import Anthropic from '@anthropic-ai/sdk';
 
 import Modal from "./Modal"
 import useUploadModal from "@/hooks/useUploadModal";
@@ -56,9 +57,6 @@ const UploadModal = () => {
         return;
       }
   
-      // Use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
-      const recommendations = await fetchRecommendations(providerKey);
-  
       // Create Spotify playlist
       const response = await fetch(`https://api.spotify.com/v1/users/${spotifyData?.id}/playlists`, {
         method: 'POST',
@@ -84,6 +82,9 @@ const UploadModal = () => {
 
       // Add uploaded image as playlist cover
       addPlaylistImage(formattedImageFile, playlistData, providerKey);
+
+      // Use Spotify API to get recommendations based on 5 seeds (3 artists, 2 genres)
+      const recommendations = await fetchRecommendations(providerKey, formattedImageFile);
 
       const uniqueId = uniqid();
       const { data: imageData, error: imageError } = await supabaseClient.storage.from('images').upload(`images-${values.title}-${uniqueId}`, formattedImageFile, {
@@ -168,10 +169,10 @@ const UploadModal = () => {
   )
 }
 
-const fetchRecommendations = async (providerKey: string) => {
+const fetchRecommendations = async (providerKey: string, imageFile: Blob) => {
   try {
-    // Fetch top artists
-    const response = await fetch('https://api.spotify.com/v1/me/top/artists', {
+    // Fetch top artists --> we'll grab 20 for now
+    const response = await fetch('https://api.spotify.com/v1/me/top/artists?limit=15', {
       headers: {
         'Authorization': `Bearer ${providerKey}`
       }
@@ -182,18 +183,54 @@ const fetchRecommendations = async (providerKey: string) => {
     }
 
     const data = await response.json();
-    const topArtists = data.items.map((artist: {id : string}) => artist.id);
 
-    // Fetch recommendations after fetching top artists
-    const selectedArtists = topArtists
-      .map((value: string) => ({ value, sort: Math.random() }))
-      .sort((a: { sort: number }, b: { sort: number }) => a.sort - b.sort)
-      .map(({ value }: { value: any }) => value)
-      .slice(0, 3);
+    const base64Data = await convertBase64(imageFile);
 
-    const genres = ['pop', 'r-n-b'];
+    const topArtists = data.items.map((artist: {id: string, name: string}) => {
+      return {
+        name: artist.name,
+        id: artist.id
+      };
+    });
 
-    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${selectedArtists.join(',')}&seed_genres=${genres.join(',')}&limit=24`, {
+    const artistNames: string = topArtists.map((artist: {id: string, name: string}) => artist.name).join(', ');
+
+    const domain = window?.location?.origin || '';
+    const anthropic = new Anthropic({
+      apiKey: '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',
+      baseURL: domain + '/anthropic/',
+    });
+
+    const seeds = await anthropic.messages.create({
+      max_tokens: 1024,
+      system: "Spotify only has the following genres: acoustic, afrobeat, alt-rock, alternative, ambient, anime, black-metal, bluegrass, blues, bossanova, brazil, breakbeat, british, cantopop, chicago-house, children, chill, classical, club, comedy, country, dance, dancehall, death-metal, deep-house, detroit-techno, disco, disney, drum-and-bass, dub, dubstep, edm, electro, electronic, emo, folk, forro, french, funk, garage, german, gospel, goth, grindcore, groove, grunge, guitar, happy, hard-rock, hardcore, hardstyle, heavy-metal, hip-hop, holidays, honky-tonk, house, idm, indian, indie, indie-pop, industrial, iranian, j-dance, j-idol, j-pop, j-rock, jazz, k-pop, kids, latin, latino, malay, mandopop, metal, metal-misc, metalcore, minimal-techno, movies, mpb, new-age, new-release, opera, pagode, party, philippines-opm, piano, pop, pop-film, post-dubstep, power-pop, progressive-house, psych-rock, punk, punk-rock, r-n-b, rainy-day, reggae, reggaeton, road-trip, rock, rock-n-roll, rockabilly, romance, sad, salsa, samba, sertanejo, show-tunes, singer-songwriter, ska, sleep, songwriter, soul, soundtracks, spanish, study, summer, swedish, synth-pop, tango, techno, trance, trip-hop, turkish, work-out, world-music. Your response will be a comma-separated list containing 3 artist names and 2 of the aforementioned genres.",
+      messages: [{ role: 'user', content: [
+        {
+          "type": "image",
+          "source": {
+              "type": "base64",
+              "media_type": "image/jpeg",
+              "data": `${base64Data}`,
+          },
+        },
+        {
+            "type": "text",
+            "text": `A Spotify user loves the following artists: ${artistNames}. Using the provided image, pick 3 artists that make songs that match the vibe of the image. Then, pick 2 genres based on the image and the artists. DO NOT add additonal words. Your response should be like this: artist_name, artist_name, artist_name, genre, genre`
+        }
+      ]}],
+      model: 'claude-3-sonnet-20240229',
+    });
+
+    const seededArtistsIds = seeds.content[0].text.split(',').map(element => element.trim()).map((name: string) => {
+      const matchingArtist = topArtists.find((artist: {id: string, name: string}) => artist.name === name);
+      return matchingArtist ? matchingArtist.id : null;
+    }).filter((id: string) => id !== null);
+    const seededGenres = seeds.content[0].text.split(',').slice(-2).map(genre => genre.trim()).join(',');
+
+    console.log(seeds.content[0].text.split(','))
+
+    // generate recommendations based on artists + genres retrieved from Claude
+    const recommendationsResponse = await fetch(`https://api.spotify.com/v1/recommendations?seed_artists=${seededArtistsIds.join(',')}&seed_genres=${seededGenres}&limit=24`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${providerKey}`,
@@ -292,5 +329,19 @@ const addRecommendedSongs = async (tracks: [SpotifyTrack], playlistData: Spotify
     toast.error('Failed to add songs to the playlist.');
   }
 }
+
+const convertBase64 = (imageFile: any) => {
+  return new Promise((resolve) => {
+    const fileReader = new FileReader();
+    fileReader.readAsDataURL(imageFile);
+    fileReader.onload = () => {
+      const result = fileReader.result;
+      if (typeof result === 'string') {
+        resolve(result.split(',')[1]);
+      }
+    };
+  });
+};
+
 
 export default UploadModal;
