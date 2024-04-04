@@ -257,10 +257,12 @@ const reformat = async (imageFile: any): Promise<Blob> => {
     if (newImg.size > MAX_FILE_SIZE && newImg instanceof Blob) {
       const compressedBlob = await new Promise<Blob>((resolve, reject) => {
         new Compressor(newImg, {
-          convertSize: MAX_FILE_SIZE,
+          quality: 0.8, 
+          maxWidth: 500, 
+          maxHeight: 500,
           mimeType: "image/jpeg", // Specify the output image format
-          success (compressedResult) { resolve(compressedResult) },
-          error(err) { reject(err) },
+          success (compressedResult: any) { resolve(compressedResult) },
+          error(err: any) { reject(err) },
         });
       });
       newImg = compressedBlob;
