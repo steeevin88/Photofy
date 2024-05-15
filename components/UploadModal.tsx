@@ -197,7 +197,7 @@ const fetchRecommendations = async (providerKey: string, imageFile: Blob) => {
 
     const domain = window?.location?.origin || '';
     const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+      apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
       baseURL: domain + '/anthropic/',
     });
 
